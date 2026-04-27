@@ -23,9 +23,21 @@ impl Read for StdinRaw {
     }
 }
 
+const WITH_COLOR_PREFIX: &str = "[WithColor]";
+const WITH_COLOR_PATTERN_CYAN: &str = "\x1b[36m";
+const WITH_COLOR_PATTERN_RESET: &str = "\x1b[0m";
+
 impl Write for StdoutRaw {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        arceos_api::stdio::ax_console_write_bytes(buf)
+        if buf.starts_with(WITH_COLOR_PREFIX.as_bytes()) {
+            // Handle colored output
+            arceos_api::stdio::ax_console_write_bytes(WITH_COLOR_PATTERN_CYAN.as_bytes());
+            arceos_api::stdio::ax_console_write_bytes(buf);
+            arceos_api::stdio::ax_console_write_bytes(WITH_COLOR_PATTERN_RESET.as_bytes());
+            Ok(buf.len())
+        } else {
+            arceos_api::stdio::ax_console_write_bytes(buf)
+        }
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
